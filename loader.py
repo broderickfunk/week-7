@@ -33,7 +33,11 @@ def build_geo_dataframe(locations):
 
 if __name__ == "__main__":
     geo = get_geolocator()
-
+    try:
+        get_geolocator(agent='h501-student')
+    except Exception as e:
+        print("ModuleNotFoundError: No module named 'geopy'", e)
+    
     locations = ["Museum of Modern Art", "iuyt8765(*&)", "Alaska", "Franklin's Barbecue", "Burj Khalifa"]
 
     df = build_geo_dataframe(locations)
