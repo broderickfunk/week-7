@@ -1,45 +1,78 @@
 '''
-Script to load geographical data into a pandas DataFrame, and save it as a CSV file.
+Script to load geographical data into a pandas DataFrame using a Python class.
 '''
 
 from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 import pandas as pd
 
 
-def get_geolocator(agent='h501-student'):
-    """
-    Initiate a Nominatim geolocator instance given an `agent`.
+class GeoLoader:
+    """Loads geographical data into a pandas DataFrame."""
 
-    Parameters
-    ----------
-    agent : str, optional
-        Agent name for Nominatim, by default 'h501-student'
-    """
-    return Nominatim(user_agent=agent)
+    def __init__(self, agent='h501-student'):
+        """
+        Initialize the GeoLoader with a Nominatim geolocator.
 
-def fetch_location_data(geolocator, loc):
-    location = geolocator.geocode(loc)
+        Parameters
+        ----------
+        agent : str, optional
+            User agent name for Nominatim, by default 'h501-student'
+        """
+        self.geolocator = Nominatim(user_agent=agent)
 
-    if location is None:
-        return None
-    
-    return {"location": loc, "latitude": location.latitude, "longitude": location.longitude, "type": location.geo_type}
+    def fetch_location_data(self, loc):
+        """
+        Fetch geo data for a single location string.
 
-def build_geo_dataframe(locations):
-    geo_data = [fetch_location_data(geolocator, loc) for loc in locations]
-    
-    return pd.DataFrame(geo_data)
+        Parameters
+        ----------
+        loc : str
+            The location name to look up.
+        """
+        try:
+            location = self.geolocator.geocode(loc)
+        except (GeocoderTimedOut, GeocoderServiceError):
+            location = None
+
+        if location is None:
+            return {
+                "location": loc,
+                "latitude": float("nan"),
+                "longitude": float("nan"),
+                "type": float("nan")
+            }
+
+        return {
+            "location": loc,
+            "latitude": location.latitude,
+            "longitude": location.longitude,
+            "type": location.raw.get("type")
+        }
+
+    def build_geo_dataframe(self, locations):
+        """
+        Build a pandas DataFrame of geo data for a list of location strings.
+
+        Parameters
+        ----------
+        locations : list of str
+            Location names to look up.
+        """
+        geo_data = [self.fetch_location_data(loc) for loc in locations]
+        return pd.DataFrame(geo_data)
 
 
 if __name__ == "__main__":
-    geo = get_geolocator()
-    try:
-        get_geolocator(agent='h501-student')
-    except Exception as e:
-        print("ModuleNotFoundError: No module named 'geopy'", e)
-    
-    locations = ["Museum of Modern Art", "iuyt8765(*&)", "Alaska", "Franklin's Barbecue", "Burj Khalifa"]
+    loader = GeoLoader()
 
-    df = build_geo_dataframe(locations)
+    locations = [
+        "Museum of Modern Art",
+        "iuyt8765(*&)",
+        "Alaska",
+        "Franklin's Barbecue",
+        "Burj Khalifa"
+    ]
 
+    df = loader.build_geo_dataframe(locations)
     df.to_csv("./geo_data.csv")
